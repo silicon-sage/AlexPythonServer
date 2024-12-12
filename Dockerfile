@@ -10,6 +10,9 @@ RUN pip install redis
 COPY . .
 EXPOSE 5000
 
+ENV TZ=America/Los_Angeles
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 # Use gunicorn instead of Flask's development server
 # -w 4: means 4 worker processes
 # -b 0.0.0.0:5000: binds to all interfaces on port 5000
