@@ -127,7 +127,7 @@ def add_health_record():
 
         record_type = data['type']
         patient_id = data['patient_id']
-        provider = data.get('provider')  # Optional provider field
+        provider = data.get('provider')
         
         if record_type == "lab_result":
             record = LabResult(
@@ -159,14 +159,12 @@ def add_health_record():
         else:
             return jsonify({"error": "Invalid record type"}), 400
 
-        # Store record in Redis
         record_dict = record.to_dict()
         redis_client.hset(
             f"health_record:{record.id}",
             mapping=record_dict
         )
         
-        # Add to index sets for efficient filtering
         redis_client.sadd(f"patient:{patient_id}", record.id)
         redis_client.sadd(f"type:{record_type}", record.id)
         if provider:
@@ -188,7 +186,6 @@ def get_health_records():
         record_type = request.args.get('type')
         provider = request.args.get('provider')
         
-        # Get all record IDs that match the filters
         record_ids = set()
         filter_sets = []
         
@@ -200,15 +197,12 @@ def get_health_records():
             filter_sets.append(redis_client.smembers(f"provider:{provider}"))
         
         if filter_sets:
-            # Intersection of all filter sets
             record_ids = set.intersection(*filter_sets) if len(filter_sets) > 1 else filter_sets[0]
         else:
-            # If no filters, get all record IDs
             all_patient_keys = redis_client.keys("patient:*")
             for key in all_patient_keys:
                 record_ids.update(redis_client.smembers(key))
         
-        # Fetch all matching records
         records = []
         for record_id in record_ids:
             record_data = redis_client.hgetall(f"health_record:{record_id}")
