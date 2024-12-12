@@ -11,6 +11,7 @@ class TestServer:
         self.app = create_app()
         self.url = f"http://localhost:{port}"
         self.thread = None
+        self.test_patient_id = "9000"
         
     def start(self):
         def run_app():
@@ -38,7 +39,7 @@ def api_server():
 
 @pytest.fixture(autouse=True)
 def clear_data(api_server):
-    response = requests.delete(f"{api_server.url}/health-records/123")
+    response = requests.delete(f"{api_server.url}/health-records/{api_server.test_patient_id}")
     assert response.status_code == 200
     yield
 
@@ -46,7 +47,7 @@ def test_add_and_retrieve_lab_result(api_server):
     # Add a lab result
     lab_data = {
         "type": "lab_result",
-        "patient_id": "123",
+        "patient_id": api_server.patient_id,
         "value": "10.5",
         "description": "Blood Test",
         "provider": "Dr. Smith"
@@ -59,12 +60,12 @@ def test_add_and_retrieve_lab_result(api_server):
     assert response.status_code == 201
     result = response.json()
     assert result["type"] == "lab_result"
-    assert result["patient_id"] == "123"
+    assert result["patient_id"] == api_server.test_patient_id
     
     # Retrieve the lab result
     response = requests.get(
         f"{api_server.url}/health-records",
-        params={"patient_id": "123"}
+        params={"patient_id": api_server.test_patient_id}
     )
     assert response.status_code == 200
     records = response.json()
@@ -75,7 +76,7 @@ def test_add_and_retrieve_lab_result(api_server):
 def test_add_prescription(api_server):
     prescription_data = {
         "type": "prescription",
-        "patient_id": "123",
+        "patient_id": api_server.test_patient_id,
         "dose": "10mg",
         "drug": "Aspirin",
         "provider": "Dr. Jones"
@@ -93,7 +94,7 @@ def test_add_prescription(api_server):
 def test_invalid_record_type(api_server):
     invalid_data = {
         "type": "invalid_type",
-        "patient_id": "123"
+        "patient_id": api_server.test_patient_id
     }
     
     response = requests.post(
