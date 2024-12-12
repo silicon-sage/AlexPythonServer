@@ -8,13 +8,38 @@ from redis.exceptions import RedisError
 
 app = Flask(__name__)
 
-# Configure Redis connection
-redis_client = redis.Redis(
-    host='10.0.0.26',
-    port=6379,
-    db=0,
-    decode_responses=True  # This ensures Redis returns strings rather than bytes
-)
+def load_config():
+    """Load configuration from config.json file"""
+    config_path = os.path.join(os.path.dirname(__file__), 'config.json')
+    try:
+        with open(config_path, 'r') as config_file:
+            return json.load(config_file)
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            "config.json not found. Please create a config file with Redis connection details."
+        )
+    except json.JSONDecodeError:
+        raise ValueError("Invalid JSON in config.json")
+
+# Load configuration and initialize Redis client
+try:
+    config = load_config()
+    redis_config = config.get('redis', {})
+    redis_client = redis.Redis(
+        host=redis_config.get('host', 'localhost'),
+        port=redis_config.get('port', 6379),
+        db=redis_config.get('db', 0),
+        username=redis_config.get('username'),
+        password=redis_config.get('password'),
+        ssl=redis_config.get('ssl', False),
+        decode_responses=True,
+        socket_timeout=redis_config.get('socket_timeout', 5),
+        socket_connect_timeout=redis_config.get('socket_connect_timeout', 5),
+        retry_on_timeout=redis_config.get('retry_on_timeout', True)
+    )
+except Exception as e:
+    print(f"Error initializing Redis client: {str(e)}")
+    raise
 
 class HealthRecord:
     def __init__(self, record_type: str, patient_id: str, timestamp: datetime = None):
