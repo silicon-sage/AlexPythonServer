@@ -58,7 +58,6 @@ def test_get_health_records_by_patient(client, redis_mock):
         content_type='application/json'
     )
     
-    # Then retrieve it
     response = client.get('/health-records?patient_id=123')
     assert response.status_code == 200
     records = json.loads(response.data)
@@ -66,7 +65,6 @@ def test_get_health_records_by_patient(client, redis_mock):
     assert records[0]['patient_id'] == "123"
 
 def test_get_health_records_by_type(client, redis_mock):
-    # Add a record
     data = {
         "type": "lab_result",
         "patient_id": "123",
@@ -81,7 +79,6 @@ def test_get_health_records_by_type(client, redis_mock):
         content_type='application/json'
     )
     
-    # Retrieve by type
     response = client.get('/health-records?type=lab_result')
     assert response.status_code == 200
     records = json.loads(response.data)

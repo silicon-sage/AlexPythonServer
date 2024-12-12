@@ -1,4 +1,3 @@
-# tests/test_integration.py
 import requests
 import pytest
 import threading
@@ -24,13 +23,10 @@ class TestServer:
         time.sleep(1)
 
     def stop(self):
-        # Note: With Flask's development server, we don't need explicit cleanup
-        # The daemon thread will be terminated when the main thread exits
         pass
 
 @pytest.fixture(scope="session")
 def api_server():
-    # Configure Flask for testing
     server = TestServer()
     server.app.config['TESTING'] = True
     server.start()
@@ -44,7 +40,6 @@ def clear_data(api_server):
     yield
 
 def test_add_and_retrieve_lab_result(api_server):
-    # Add a lab result
     lab_data = {
         "type": "lab_result",
         "patient_id": api_server.patient_id,
@@ -62,7 +57,6 @@ def test_add_and_retrieve_lab_result(api_server):
     assert result["type"] == "lab_result"
     assert result["patient_id"] == api_server.test_patient_id
     
-    # Retrieve the lab result
     response = requests.get(
         f"{api_server.url}/health-records",
         params={"patient_id": api_server.test_patient_id}
