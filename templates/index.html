@@ -56,10 +56,43 @@
             margin-bottom: 10px;
             border-radius: 4px;
             background-color: #fff;
+            border-left: 5px solid #ddd;  /* Default border */
         }
+
+        .record-lab-result {
+            border-left-color: #2ecc71;  /* Green for lab results */
+        }
+
+        .record-prescription {
+            border-left-color: #e74c3c;  /* Red for prescriptions */
+        }
+
+        .record-appointment-note {
+            border-left-color: #f39c12;  /* Orange for appointment notes */
+        }
+
+        .record-self-measurement {
+            border-left-color: #9b59b6;  /* Purple for self measurements */
+        }
+
         .record-type {
             font-weight: bold;
-            color: #3498db;
+        }
+
+        .record-type.lab-result {
+            color: #27ae60;  /* Dark green for lab results */
+        }
+
+        .record-type.prescription {
+            color: #c0392b;  /* Dark red for prescriptions */
+        }
+
+        .record-type.appointment-note {
+            color: #d35400;  /* Dark orange for appointment notes */
+        }
+
+        .record-type.self-measurement {
+            color: #8e44ad;  /* Dark purple for self measurements */
         }
         .timestamp {
             color: #7f8c8d;
@@ -92,7 +125,7 @@
         
         <div class="tabs">
             <button class="tab active" onclick="showTab('add')">Add Record</button>
-            <button class="tab" onclick="showTab('view')">View Records</button>
+            <button class="tab" onclick="showTab('view')">View My Records</button>
         </div>
 
         <div id="addSection">
@@ -219,6 +252,8 @@
                     const recordsList = document.getElementById('recordsList');
                     recordsList.innerHTML = records.map(record => {
                         let details = '';
+                        const recordType = record.type.replace('_', '-');
+                        
                         if (record.type === 'lab_result' || record.type === 'self_measurement') {
                             details = `Value: ${record.value} - ${record.description}`;
                         } else if (record.type === 'prescription') {
@@ -228,8 +263,10 @@
                         }
                         
                         return `
-                            <div class="record">
-                                <div class="record-type">${record.type.replace('_', ' ').toUpperCase()}</div>
+                            <div class="record record-${recordType}">
+                                <div class="record-type ${recordType}">
+                                    ${record.type.replace('_', ' ').toUpperCase()}
+                                </div>
                                 <div>${details}</div>
                                 <div class="timestamp">${moment(record.timestamp).format('MMMM Do YYYY, h:mm:ss a')}</div>
                             </div>
