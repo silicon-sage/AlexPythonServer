@@ -88,16 +88,12 @@ def get_health_records():
         return jsonify(filtered_records)
     except RedisError as e:
         return jsonify({"error": f"Database error: {str(e)}"}), 500
-        
-        
-        
+
 @health_records_bp.route('/health-records/<patient_id>', methods=['DELETE'])
 def delete_patient_records(patient_id):
     try:
         redis_client = get_redis_client()
-        redis_client = get_redis_client()
         filtered_records = get_records_by_patient_id(redis_client, patient_id)  
-
         
         if not filtered_records:
             return jsonify({"message": f"No records found for patient {patient_id}"}), 200
@@ -142,7 +138,7 @@ def get_records_by_patient_id(redis_client, patient_id=None):
     ]
     
     return filtered_records
-    
+
 def delete_record_by_id(redis_client, record_id):
     record_id = record_id.decode('utf-8') if isinstance(record_id, bytes) else str(record_id)
     record_data = redis_client.hgetall(f"health_record:{record_id}")

@@ -4,6 +4,7 @@ COPY requirements.txt .
 
 RUN pip install -r requirements.txt gunicorn
 
+# this was needed to get redis working
 RUN pip uninstall -y redis
 RUN pip install redis
 

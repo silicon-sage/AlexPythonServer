@@ -127,7 +127,7 @@
     </style>
 </head>
 <body>
-	<div id="notification" class="notification"></div>
+    <div id="notification" class="notification"></div>
     <div class="container">
         <h1>My Health Diary</h1>
         
@@ -212,9 +212,7 @@
                 notification.classList.remove('show');
             }, 3000);
         }
-		
-		
-	
+
         function showTab(tab) {
             document.getElementById('addSection').style.display = tab === 'add' ? 'block' : 'none';
             document.getElementById('viewSection').style.display = tab === 'view' ? 'block' : 'none';
@@ -296,15 +294,41 @@
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
+            .then(response => {
+                // Check if the response is not OK (status outside 200-299 range)
+                if (!response.ok) {
+                    // Throw an error with the status and status text
+                    return Promise.reject(new Error(`HTTP error! status: ${response.status}, message: ${response.statusText}`));
+                }
+                // If response is OK, parse the JSON
+                return response.json();
+            })
             .then(data => {
                 showNotification('Record saved successfully!');
                 document.getElementById('recordForm').reset();
                 updateForm();
             })
             .catch(error => {
-                showNotification('Error saving record', true);
-                console.error('Error:', error);
+                // Add detailed message about error information
+                let errorMessage = 'Unable to save record. ';
+                
+                if (error instanceof TypeError) {
+                    // Network errors or fetch-related issues
+                    if (error.message.includes('Failed to fetch')) {
+                        errorMessage += 'Network connection lost. Please check your internet connection.';
+                    } else if (error.message.includes('NetworkError')) {
+                        errorMessage += 'Network error occurred. Please try again.';
+                    } else {
+                        errorMessage += 'Unable to connect to the server. Please check your network.';
+                    }
+                } else if (error.message.includes('HTTP error')) {
+                    errorMessage += "A server error occured, please try again later";
+                } else {
+                    errorMessage += 'An unexpected error occurred. Please try again.';
+                }
+
+                showNotification(errorMessage, true);
+                console.error('Detailed Error:', error);
             });
         }
 
@@ -322,7 +346,15 @@
             }
             
             fetch(url)
-                .then(response => response.json())
+                .then(response => {
+                    // Check if the response is not OK (status outside 200-299 range)
+                    if (!response.ok) {
+                        // Throw an error with the status and status text
+                        return Promise.reject(new Error(`HTTP error! status: ${response.status}, message: ${response.statusText}`));
+                    }
+                    // If response is OK, parse the JSON
+                    return response.json();
+                })
                 .then(records => {
                     records.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                     records = filterRecordsByTime(records, timeFilter);
@@ -361,8 +393,26 @@
                     }).join('');
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    document.getElementById('recordsList').innerHTML = 'Error loading records';
+                    // Add detailed message about error information
+                    let errorMessage = 'Unable to save record. ';
+                    
+                    if (error instanceof TypeError) {
+                        // Network errors or fetch-related issues
+                        if (error.message.includes('Failed to fetch')) {
+                            errorMessage += 'Network connection lost. Please check your internet connection.';
+                        } else if (error.message.includes('NetworkError')) {
+                            errorMessage += 'Network error occurred. Please try again.';
+                        } else {
+                            errorMessage += 'Unable to connect to the server. Please check your network.';
+                        }
+                    } else if (error.message.includes('HTTP error')) {
+                        errorMessage += "A server error occured, please try again later";
+                    } else {
+                        errorMessage += 'An unexpected error occurred. Please try again.';
+                    }
+
+                    showNotification(errorMessage, true);
+                    console.error('Detailed Error:', error);
                 });
         }
 
