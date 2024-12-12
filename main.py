@@ -40,15 +40,16 @@ except Exception as e:
     raise
 
 class HealthRecord:
-    def __init__(self, record_type: str, patient_id: str, timestamp: datetime = None):
+    def __init__(self, record_type: str, patient_id: str, provider: str = None, timestamp: datetime = None):
         self.id = str(uuid.uuid4())
         self.record_type = record_type
         self.patient_id = patient_id
+        self.provider = provider
         self.timestamp = timestamp or datetime.now()
 
 class LabResult(HealthRecord):
-    def __init__(self, patient_id: str, value: float, description: str):
-        super().__init__("lab_result", patient_id)
+    def __init__(self, patient_id: str, value: float, description: str, provider: str = None):
+        super().__init__("lab_result", patient_id, provider)
         self.value = value
         self.description = description
 
@@ -57,14 +58,15 @@ class LabResult(HealthRecord):
             "id": self.id,
             "type": self.record_type,
             "patient_id": self.patient_id,
+            "provider": self.provider,
             "timestamp": self.timestamp.isoformat(),
             "value": self.value,
             "description": self.description
         }
 
 class Prescription(HealthRecord):
-    def __init__(self, patient_id: str, dose: str, drug: str):
-        super().__init__("prescription", patient_id)
+    def __init__(self, patient_id: str, dose: str, drug: str, provider: str = None):
+        super().__init__("prescription", patient_id, provider)
         self.dose = dose
         self.drug = drug
 
@@ -73,14 +75,15 @@ class Prescription(HealthRecord):
             "id": self.id,
             "type": self.record_type,
             "patient_id": self.patient_id,
+            "provider": self.provider,
             "timestamp": self.timestamp.isoformat(),
             "dose": self.dose,
             "drug": self.drug
         }
 
 class AppointmentNote(HealthRecord):
-    def __init__(self, patient_id: str, note: str):
-        super().__init__("appointment_note", patient_id)
+    def __init__(self, patient_id: str, note: str, provider: str = None):
+        super().__init__("appointment_note", patient_id, provider)
         self.note = note
 
     def to_dict(self):
@@ -88,13 +91,14 @@ class AppointmentNote(HealthRecord):
             "id": self.id,
             "type": self.record_type,
             "patient_id": self.patient_id,
+            "provider": self.provider,
             "timestamp": self.timestamp.isoformat(),
             "note": self.note
         }
 
 class SelfMeasurement(HealthRecord):
-    def __init__(self, patient_id: str, value: float, description: str):
-        super().__init__("self_measurement", patient_id)
+    def __init__(self, patient_id: str, value: float, description: str, provider: str = None):
+        super().__init__("self_measurement", patient_id, provider)
         self.value = value
         self.description = description
 
@@ -103,6 +107,7 @@ class SelfMeasurement(HealthRecord):
             "id": self.id,
             "type": self.record_type,
             "patient_id": self.patient_id,
+            "provider": self.provider,
             "timestamp": self.timestamp.isoformat(),
             "value": self.value,
             "description": self.description
@@ -122,29 +127,34 @@ def add_health_record():
 
         record_type = data['type']
         patient_id = data['patient_id']
+        provider = data.get('provider')  # Optional provider field
         
         if record_type == "lab_result":
             record = LabResult(
                 patient_id=patient_id,
                 value=float(data['value']),
-                description=data['description']
+                description=data['description'],
+                provider=provider
             )
         elif record_type == "prescription":
             record = Prescription(
                 patient_id=patient_id,
                 dose=data['dose'],
-                drug=data['drug']
+                drug=data['drug'],
+                provider=provider
             )
         elif record_type == "appointment_note":
             record = AppointmentNote(
                 patient_id=patient_id,
-                note=data['note']
+                note=data['note'],
+                provider=provider
             )
         elif record_type == "self_measurement":
             record = SelfMeasurement(
                 patient_id=patient_id,
                 value=float(data['value']),
-                description=data['description']
+                description=data['description'],
+                provider=provider
             )
         else:
             return jsonify({"error": "Invalid record type"}), 400
@@ -159,6 +169,8 @@ def add_health_record():
         # Add to index sets for efficient filtering
         redis_client.sadd(f"patient:{patient_id}", record.id)
         redis_client.sadd(f"type:{record_type}", record.id)
+        if provider:
+            redis_client.sadd(f"provider:{provider}", record.id)
         
         return jsonify(record_dict), 201
 
@@ -174,22 +186,24 @@ def get_health_records():
     try:
         patient_id = request.args.get('patient_id')
         record_type = request.args.get('type')
+        provider = request.args.get('provider')
         
         # Get all record IDs that match the filters
         record_ids = set()
+        filter_sets = []
         
-        if patient_id and record_type:
-            # Intersection of patient's records and records of specific type
-            patient_records = redis_client.smembers(f"patient:{patient_id}")
-            type_records = redis_client.smembers(f"type:{record_type}")
-            record_ids = patient_records.intersection(type_records)
-        elif patient_id:
-            record_ids = redis_client.smembers(f"patient:{patient_id}")
-        elif record_type:
-            record_ids = redis_client.smembers(f"type:{record_type}")
+        if patient_id:
+            filter_sets.append(redis_client.smembers(f"patient:{patient_id}"))
+        if record_type:
+            filter_sets.append(redis_client.smembers(f"type:{record_type}"))
+        if provider:
+            filter_sets.append(redis_client.smembers(f"provider:{provider}"))
+        
+        if filter_sets:
+            # Intersection of all filter sets
+            record_ids = set.intersection(*filter_sets) if len(filter_sets) > 1 else filter_sets[0]
         else:
             # If no filters, get all record IDs
-            # Note: In production, you might want to implement pagination
             all_patient_keys = redis_client.keys("patient:*")
             for key in all_patient_keys:
                 record_ids.update(redis_client.smembers(key))
