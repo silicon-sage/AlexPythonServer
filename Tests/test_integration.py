@@ -42,7 +42,7 @@ def clear_data(api_server):
 def test_add_and_retrieve_lab_result(api_server):
     lab_data = {
         "type": "lab_result",
-        "patient_id": api_server.patient_id,
+        "patient_id": api_server.test_patient_id,
         "value": "10.5",
         "description": "Blood Test",
         "provider": "Dr. Smith"
