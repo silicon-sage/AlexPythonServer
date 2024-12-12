@@ -9,10 +9,8 @@ from redis.exceptions import RedisError
 app = Flask(__name__)
 
 def load_config():
-    """Load configuration from config.json file"""
-    config_path = os.path.join(os.path.dirname(__file__), 'config.json')
     try:
-        with open(config_path, 'r') as config_file:
+        with open('config.json', 'r') as config_file:
             return json.load(config_file)
     except FileNotFoundError:
         raise FileNotFoundError(
