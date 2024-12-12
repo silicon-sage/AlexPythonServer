@@ -13,7 +13,7 @@ class HealthRecord:
         self.id = str(uuid.uuid4())
         self.record_type = record_type
         self.patient_id = patient_id
-        self.timestamp = timestamp or datetime.utcnow()
+        self.timestamp = timestamp or datetime.now()
 
 class LabResult(HealthRecord):
     def __init__(self, patient_id: str, value: float, description: str):
