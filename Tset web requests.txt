@@ -1,0 +1,32 @@
+Tests:
+
+# 1. Add a Lab Result
+curl -X POST http://localhost:5000/health-records -H "Content-Type: application/json" -d "{\"type\": \"lab_result\", \"patient_id\": \"123\", \"value\": 100, \"description\": \"Cholesterol\"}"
+
+# 2. Add a Prescription
+curl -X POST http://localhost:5000/health-records -H "Content-Type: application/json" -d "{\"type\": \"prescription\", \"patient_id\": \"123\", \"dose\": \"100mg\", \"drug\": \"Aspirin\"}"
+
+# 3. Add an Appointment Note
+curl -X POST http://localhost:5000/health-records -H "Content-Type: application/json" -d "{\"type\": \"appointment_note\", \"patient_id\": \"123\", \"note\": \"Patient reported feeling better after medication\"}"
+
+# 4. Add a Self Measurement
+curl -X POST http://localhost:5000/health-records -H "Content-Type: application/json" -d "{\"type\": \"self_measurement\", \"patient_id\": \"123\", \"value\": 8.9, \"description\": \"blood sugar\"}"
+
+# 5. Get all health records
+curl http://localhost:5000/health-records
+
+# 6. Get health records for a specific patient
+curl http://localhost:5000/health-records?patient_id=123
+
+# 7. Get health records of a specific type
+curl http://localhost:5000/health-records?type=lab_result
+
+# 8. Get health records for a specific patient and type
+curl http://localhost:5000/health-records?patient_id=123&type=lab_result
+
+# Test error cases
+# 9. Invalid record type
+curl -X POST http://localhost:5000/health-records -H "Content-Type: application/json" -d "{\"type\": \"invalid_type\", \"patient_id\": \"123\", \"value\": 100, \"description\": \"Test\"}"
+
+# 10. Missing required field
+curl -X POST http://localhost:5000/health-records -H "Content-Type: application/json" -d "{\"type\": \"lab_result\", \"patient_id\": \"123\"}"

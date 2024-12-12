@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Health Diary</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #34495e;
+        }
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .record {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            background-color: #fff;
+        }
+        .record-type {
+            font-weight: bold;
+            color: #3498db;
+        }
+        .timestamp {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        .tabs {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background-color: #eee;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .tab.active {
+            background-color: #3498db;
+            color: white;
+        }
+        #recordForm, #recordsList {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>My Health Diary</h1>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('add')">Add Record</button>
+            <button class="tab" onclick="showTab('view')">View Records</button>
+        </div>
+
+        <div id="addSection">
+            <form id="recordForm" onsubmit="submitRecord(event)">
+                <div class="form-group">
+                    <label for="recordType">Record Type:</label>
+                    <select id="recordType" onchange="updateForm()">
+                        <option value="lab_result">Lab Result</option>
+                        <option value="prescription">Prescription</option>
+                        <option value="appointment_note">Appointment Note</option>
+                        <option value="self_measurement">Self Measurement</option>
+                    </select>
+                </div>
+
+                <div id="dynamicFields"></div>
+
+                <button type="submit">Save Record</button>
+            </form>
+        </div>
+
+        <div id="viewSection" style="display: none;">
+            <div id="recordsList"></div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tab) {
+            document.getElementById('addSection').style.display = tab === 'add' ? 'block' : 'none';
+            document.getElementById('viewSection').style.display = tab === 'view' ? 'block' : 'none';
+            
+            // Update active tab
+            document.querySelectorAll('.tab').forEach(t => {
+                t.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            if (tab === 'view') {
+                fetchRecords();
+            }
+        }
+
+        function updateForm() {
+            const type = document.getElementById('recordType').value;
+            const dynamicFields = document.getElementById('dynamicFields');
+            
+            let fields = '';
+            
+            if (type === 'lab_result' || type === 'self_measurement') {
+                fields = `
+                    <div class="form-group">
+                        <label for="value">Value:</label>
+                        <input type="number" id="value" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description:</label>
+                        <input type="text" id="description" required>
+                    </div>
+                `;
+            } else if (type === 'prescription') {
+                fields = `
+                    <div class="form-group">
+                        <label for="dose">Dose:</label>
+                        <input type="text" id="dose" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="drug">Drug:</label>
+                        <input type="text" id="drug" required>
+                    </div>
+                `;
+            } else if (type === 'appointment_note') {
+                fields = `
+                    <div class="form-group">
+                        <label for="note">Note:</label>
+                        <textarea id="note" rows="4" required></textarea>
+                    </div>
+                `;
+            }
+            
+            dynamicFields.innerHTML = fields;
+        }
+
+        function submitRecord(event) {
+            event.preventDefault();
+            
+            const type = document.getElementById('recordType').value;
+            let data = {
+                type: type,
+                patient_id: "123"  // In a real app, this would be the logged-in user's ID
+            };
+            
+            if (type === 'lab_result' || type === 'self_measurement') {
+                data.value = parseFloat(document.getElementById('value').value);
+                data.description = document.getElementById('description').value;
+            } else if (type === 'prescription') {
+                data.dose = document.getElementById('dose').value;
+                data.drug = document.getElementById('drug').value;
+            } else if (type === 'appointment_note') {
+                data.note = document.getElementById('note').value;
+            }
+            
+            fetch('/health-records', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Record saved successfully!');
+                document.getElementById('recordForm').reset();
+                updateForm();
+            })
+            .catch(error => {
+                alert('Error saving record');
+                console.error('Error:', error);
+            });
+        }
+
+        function fetchRecords() {
+            fetch('/health-records')
+                .then(response => response.json())
+                .then(records => {
+                    const recordsList = document.getElementById('recordsList');
+                    recordsList.innerHTML = records.map(record => {
+                        let details = '';
+                        if (record.type === 'lab_result' || record.type === 'self_measurement') {
+                            details = `Value: ${record.value} - ${record.description}`;
+                        } else if (record.type === 'prescription') {
+                            details = `${record.drug} - ${record.dose}`;
+                        } else if (record.type === 'appointment_note') {
+                            details = record.note;
+                        }
+                        
+                        return `
+                            <div class="record">
+                                <div class="record-type">${record.type.replace('_', ' ').toUpperCase()}</div>
+                                <div>${details}</div>
+                                <div class="timestamp">${moment(record.timestamp).format('MMMM Do YYYY, h:mm:ss a')}</div>
+                            </div>
+                        `;
+                    }).join('');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('recordsList').innerHTML = 'Error loading records';
+                });
+        }
+
+        // Initialize the form when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            updateForm();
+        });
+    </script>
+</body>
+</html>
