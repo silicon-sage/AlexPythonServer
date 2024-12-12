@@ -1,7 +1,10 @@
+import logging
 from flask import Blueprint, request, jsonify, render_template
 from redis.exceptions import RedisError
 from app.models.health_records import LabResult, Prescription, AppointmentNote, SelfMeasurement
 from app.services.redis_service import get_redis_client
+
+logger = logging.getLogger(__name__)
 
 health_records_bp = Blueprint('health_records', __name__)
 
@@ -68,6 +71,7 @@ def add_health_record():
         return jsonify(record_dict), 201
 
     except RedisError as e:
+        logger.error(f"Database error occurred: {str(e)}", exc_info=True)
         return jsonify({"error": f"Database error: {str(e)}"}), 500
     except KeyError as e:
         return jsonify({"error": f"Missing required field: {str(e)}"}), 400
@@ -78,34 +82,89 @@ def add_health_record():
 def get_health_records():
     try:
         patient_id = request.args.get('patient_id')
-        record_type = request.args.get('type')
-        provider = request.args.get('provider')
-        
         redis_client = get_redis_client()
-        record_ids = set()
-        filter_sets = []
+        filtered_records = get_records_by_patient_id(redis_client, patient_id)  
         
-        if patient_id:
-            filter_sets.append(redis_client.smembers(f"patient:{patient_id}"))
-        if record_type:
-            filter_sets.append(redis_client.smembers(f"type:{record_type}"))
-        if provider:
-            filter_sets.append(redis_client.smembers(f"provider:{provider}"))
-        
-        if filter_sets:
-            record_ids = set.intersection(*filter_sets) if len(filter_sets) > 1 else filter_sets[0]
-        else:
-            all_patient_keys = redis_client.keys("patient:*")
-            for key in all_patient_keys:
-                record_ids.update(redis_client.smembers(key))
-        
-        records = []
-        for record_id in record_ids:
-            record_data = redis_client.hgetall(f"health_record:{record_id}")
-            if record_data:
-                records.append(record_data)
-        
-        return jsonify(records)
-
+        return jsonify(filtered_records)
     except RedisError as e:
         return jsonify({"error": f"Database error: {str(e)}"}), 500
+        
+        
+        
+@health_records_bp.route('/health-records/<patient_id>', methods=['DELETE'])
+def delete_patient_records(patient_id):
+    try:
+        redis_client = get_redis_client()
+        redis_client = get_redis_client()
+        filtered_records = get_records_by_patient_id(redis_client, patient_id)  
+
+        
+        if not filtered_records:
+            return jsonify({"message": f"No records found for patient {patient_id}"}), 200
+        
+        for record in filtered_records:
+            delete_record_by_id(redis_client, record["id"])
+
+        return jsonify({
+            "message": f"All health records for patient {patient_id} deleted successfully"
+        }), 200
+        
+    except RedisError as e:
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
+
+def get_records_by_patient_id(redis_client, patient_id=None):
+    record_ids = set()
+    all_patient_keys = redis_client.keys("patient:*")
+    for key in all_patient_keys:
+        record_ids.update(redis_client.smembers(key))
+    
+    records = []
+    for record_id in record_ids:
+        record_id = record_id.decode('utf-8') if isinstance(record_id, bytes) else record_id
+        record_data = redis_client.hgetall(f"health_record:{record_id}")
+        if record_data:
+            # Decode record data, handling both bytes and strings
+            decoded_record = {}
+            for k, v in record_data.items():
+                key = k.decode('utf-8') if isinstance(k, bytes) else k
+                value = v.decode('utf-8') if isinstance(v, bytes) else v
+                decoded_record[key] = value
+            
+            records.append(decoded_record)
+    
+    if not patient_id:
+        return records
+    
+    # Filter records in memory by patient ID
+    filtered_records = [
+        record for record in records 
+        if record.get('patient_id') == patient_id
+    ]
+    
+    return filtered_records
+    
+def delete_record_by_id(redis_client, record_id):
+    record_id = record_id.decode('utf-8') if isinstance(record_id, bytes) else str(record_id)
+    record_data = redis_client.hgetall(f"health_record:{record_id}")
+    
+    if not record_data:
+        return False 
+    
+    decoded_record = {}
+    for k, v in record_data.items():
+        key = k.decode('utf-8') if isinstance(k, bytes) else k
+        value = v.decode('utf-8') if isinstance(v, bytes) else v
+        decoded_record[key] = value
+
+    if 'type' in decoded_record:
+        redis_client.srem(f"type:{decoded_record['type']}", record_id)
+    
+    if 'provider' in decoded_record:
+        redis_client.srem(f"provider:{decoded_record['provider']}", record_id)
+    
+    if 'patient_id' in decoded_record:
+        redis_client.srem(f"patient:{decoded_record['patient_id']}", record_id)
+    
+    redis_client.delete(f"health_record:{record_id}")
+    
+    return True
