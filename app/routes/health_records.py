@@ -71,11 +71,13 @@ def add_health_record():
         return jsonify(record_dict), 201
 
     except RedisError as e:
-        logger.error(f"Database error occurred: {str(e)}", exc_info=True)
+        logger.error(f"Critical database error occurred: {str(e)}", exc_info=True)
         return jsonify({"error": f"Database error: {str(e)}"}), 500
     except KeyError as e:
+        logger.debug(f"Missing required field during validation: {str(e)}")
         return jsonify({"error": f"Missing required field: {str(e)}"}), 400
     except ValueError as e:
+        logger.debug(f"Invalid value during validation: {str(e)}")
         return jsonify({"error": str(e)}), 400
 
 @health_records_bp.route('/health-records', methods=['GET'])
@@ -87,7 +89,7 @@ def get_health_records():
         
         return jsonify(filtered_records)
     except RedisError as e:
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+        return jsonify({"error": f"Critical database error occurred: {str(e)}"}), 500
 
 @health_records_bp.route('/health-records/<patient_id>', methods=['DELETE'])
 def delete_patient_records(patient_id):
@@ -106,7 +108,7 @@ def delete_patient_records(patient_id):
         }), 200
         
     except RedisError as e:
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+        return jsonify({"error": f"Critical database error occurred: {str(e)}"}), 500
 
 def get_records_by_patient_id(redis_client, patient_id=None):
     record_ids = set()
