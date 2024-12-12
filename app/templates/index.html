@@ -340,13 +340,8 @@
             const timeFilter = document.getElementById('timeFilter').value;
             
             let url = '/health-records';
-            if (typeFilter) {
-                url += `?type=${typeFilter}`;
-            }
-            if (providerFilter) {
-                url += url.includes('?') ? `&provider=${providerFilter}` : `?provider=${providerFilter}`;
-            }
-            
+            url += "?&patient_id=123";
+
             fetch(url)
                 .then(response => {
                     // Check if the response is not OK (status outside 200-299 range)
@@ -356,6 +351,16 @@
                     }
                     // If response is OK, parse the JSON
                     return response.json();
+                })
+                .then(records => {
+                    // Filter records based on selected values
+                    const filteredRecords = records.filter(record => {
+                        const typeMatch = !typeFilter || record.type === typeFilter;
+                        const providerMatch = !providerFilter || record.provider === providerFilter;
+                        return typeMatch && providerMatch;
+                    });
+                    
+                    return filteredRecords;
                 })
                 .then(records => {
                     records.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
