@@ -2,11 +2,19 @@ from flask import Flask, request, jsonify, render_template, render_template_stri
 from datetime import datetime
 from typing import List, Dict, Optional
 import uuid
+import json
+import redis
+from redis.exceptions import RedisError
 
 app = Flask(__name__)
 
-# In-memory storage (replace with a proper database in production)
-health_records: Dict[str, Dict] = {}
+# Configure Redis connection
+redis_client = redis.Redis(
+    host='10.0.0.26',
+    port=6379,
+    db=0,
+    decode_responses=True  # This ensures Redis returns strings rather than bytes
+)
 
 class HealthRecord:
     def __init__(self, record_type: str, patient_id: str, timestamp: datetime = None):
@@ -83,15 +91,15 @@ def home():
 
 @app.route('/health-records', methods=['POST'])
 def add_health_record():
-    data = request.get_json()
-    
-    if not data or 'type' not in data or 'patient_id' not in data:
-        return jsonify({"error": "Missing required fields"}), 400
-
-    record_type = data['type']
-    patient_id = data['patient_id']
-    
     try:
+        data = request.get_json()
+        
+        if not data or 'type' not in data or 'patient_id' not in data:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        record_type = data['type']
+        patient_id = data['patient_id']
+        
         if record_type == "lab_result":
             record = LabResult(
                 patient_id=patient_id,
@@ -118,9 +126,21 @@ def add_health_record():
         else:
             return jsonify({"error": "Invalid record type"}), 400
 
-        health_records[record.id] = record.to_dict()
-        return jsonify(record.to_dict()), 201
+        # Store record in Redis
+        record_dict = record.to_dict()
+        redis_client.hset(
+            f"health_record:{record.id}",
+            mapping=record_dict
+        )
+        
+        # Add to index sets for efficient filtering
+        redis_client.sadd(f"patient:{patient_id}", record.id)
+        redis_client.sadd(f"type:{record_type}", record.id)
+        
+        return jsonify(record_dict), 201
 
+    except RedisError as e:
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
     except KeyError as e:
         return jsonify({"error": f"Missing required field: {str(e)}"}), 400
     except ValueError as e:
@@ -128,17 +148,40 @@ def add_health_record():
 
 @app.route('/health-records', methods=['GET'])
 def get_health_records():
-    patient_id = request.args.get('patient_id')
-    record_type = request.args.get('type')
-    
-    records = list(health_records.values())
-    
-    if patient_id:
-        records = [r for r in records if r['patient_id'] == patient_id]
-    if record_type:
-        records = [r for r in records if r['type'] == record_type]
+    try:
+        patient_id = request.args.get('patient_id')
+        record_type = request.args.get('type')
         
-    return jsonify(records)
+        # Get all record IDs that match the filters
+        record_ids = set()
+        
+        if patient_id and record_type:
+            # Intersection of patient's records and records of specific type
+            patient_records = redis_client.smembers(f"patient:{patient_id}")
+            type_records = redis_client.smembers(f"type:{record_type}")
+            record_ids = patient_records.intersection(type_records)
+        elif patient_id:
+            record_ids = redis_client.smembers(f"patient:{patient_id}")
+        elif record_type:
+            record_ids = redis_client.smembers(f"type:{record_type}")
+        else:
+            # If no filters, get all record IDs
+            # Note: In production, you might want to implement pagination
+            all_patient_keys = redis_client.keys("patient:*")
+            for key in all_patient_keys:
+                record_ids.update(redis_client.smembers(key))
+        
+        # Fetch all matching records
+        records = []
+        for record_id in record_ids:
+            record_data = redis_client.hgetall(f"health_record:{record_id}")
+            if record_data:
+                records.append(record_data)
+        
+        return jsonify(records)
+
+    except RedisError as e:
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
