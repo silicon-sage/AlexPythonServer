@@ -60,7 +60,7 @@ Download and install from [Redis Windows Downloads](https://github.com/microsoft
 ## Application Deployment Options
 
 ## Configuration
-Make sure to update config.json with your Redis connection details:
+Make sure to update config.json with your Redis connection details, I use the machine IP:
 ```json
 {
   "redis": {
