@@ -250,13 +250,27 @@ measurement = SelfMeasurement(
 - **Timeline-First Approach**: Prioritized chronological view as well as the data filtering as the main interface based on user needs
 
 ## Future Improvements
-- User session and authentication. Right now all users share the same token, this should be improved and the user should only be able to edit and see their own records. In the document it says to exclude security
+- User session and authentication. Right now all users share the same token, this should be improved and the user should only be able to edit and see their own records. In the document it says to exclude security, so this feature was not prioritzed
 - File upload capability for actual medical documents (PDFs, images)
 - Integration with healthcare providers' systems
 - Enhanced security features for HIPAA compliance
-- Mobile application support
+- Mobile application support, the website works on mobile but the ease of use can be improved
 - Export functionality for sharing records with healthcare providers
 - Data visualization for tracking health metrics over time
+- Performance under load. Current implementation is using Redis which will require all information to be stored in memory, also some filtering is done in memory with O(n) speed
+
+## Error Handling
+The application implements basic error handling:
+
+1. Database Errors
+   - All Redis errors are logged
+   - Automatic reconnection attempts
+   - Errors are reported back to the client appropriately
+2. API Errors
+   - Standard error response format
+   - Error logging for debugging
+3. Input Validation
+   - Request payload validation
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
