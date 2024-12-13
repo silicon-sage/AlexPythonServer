@@ -28,10 +28,61 @@ The app enables patients to maintain a comprehensive timeline of their healthcar
 python >= 13.0
 ```
 
-### Installation
+# Installation Guide
+
+## Required: Redis Setup (Do this first)
+You must set up Redis before deploying the application, regardless of which deployment method you choose.
+
+### Option A: Using Docker for Redis (Recommended)
+```bash
+# Pull and run Redis container
+docker pull redis
+docker run --name alex-redis -p 6379:6379 -d redis
+```
+
+### Option B: Local Redis Installation
+#### For Ubuntu/Debian:
+```bash
+sudo apt update
+sudo apt install redis-server
+sudo systemctl start redis-server
+```
+
+#### For macOS:
+```bash
+brew install redis
+brew services start redis
+```
+
+#### For Windows:
+Download and install from [Redis Windows Downloads](https://github.com/microsoftarchive/redis/releases)
+
+## Application Deployment Options
+
+### Option 1: Using Docker
 ```bash
 # Clone the repository
 git clone https://github.com/silicon-sage/AlexPythonServer
+
+# Navigate to project directory
+cd AlexPythonServer
+
+# Build the Docker image
+docker build -t flask-server .
+
+# Run the container
+docker run -d --name flask-server -p 5000:5000 flask-server
+
+# Don't forget to update config.json with your Redis connection details!
+```
+
+### Option 2: Manual Installation
+```bash
+# Clone the repository
+git clone https://github.com/silicon-sage/AlexPythonServer
+
+# Navigate to project directory
+cd AlexPythonServer
 
 # Install dependencies
 pip install -r requirements.txt
@@ -40,6 +91,37 @@ pip install -r requirements.txt
 py run.py
 ```
 
+## Configuration
+Make sure to update config.json with your Redis connection details:
+```json
+{
+  "redis": {
+    "host": "localhost",
+    "port": 6379,
+    "db": 0
+  }
+}
+```
+
+## Verification
+To verify the installation:
+1. Check if Redis is running:
+   ```bash
+   redis-cli ping
+   ```
+   Should return "PONG"
+
+2. The application should be running at http://localhost:5000 (or your configured port)
+
+## Troubleshooting
+- If Redis connection fails, verify Redis is running and the config.json settings match your Redis installation
+- For Docker users:
+  - Check if containers are running: `docker ps`
+  - View application logs: `docker logs flask-server`
+  - View Redis logs: `docker logs alex-redis`
+- For local installation:
+  - Check Redis logs in system logs or Redis log file
+  - Verify Python dependencies are installed correctly
 ### Running Tests
 ```bash
 pytest
