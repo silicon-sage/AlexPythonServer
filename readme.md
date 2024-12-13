@@ -201,6 +201,48 @@ All records contain these base fields:
 
 ## Usage Examples
 
+The Health Diary application allows you to track various health-related records:
+
+### Record Types
+- **Lab Results**: Track medical laboratory test results with values and notes
+- **Self Measurements**: Log personal health measurements like blood pressure, weight, etc.
+- **Appointment Notes**: Document medical appointment details and outcomes
+- **Prescriptions**: Keep track of medications prescribed by healthcare providers
+
+### Adding Records
+1. Click the "Add Record" button
+2. Select the record type from the dropdown (Lab Result, Self Measurement, etc.)
+3. Choose a provider from the list (Self Recorded, Family Doctor, Specialist, etc.)
+4. Enter the value and any additional description
+5. Click "Save Record" to store the entry
+
+### Viewing Records
+1. Click "View My Records" to see your health history
+2. Filter records by:
+   - Record Type (All Types, Lab Result, Self Measurement, etc.)
+   - Provider (All Providers, Self Recorded, Family Doctor, etc.) 
+   - Time Period (All Time, or specific date ranges)
+
+### Example Records
+```
+LAB RESULT
+Provider: Specialist
+Value: 342342.0
+Date: December 12th 2024, 4:49:34 pm
+
+SELF MEASUREMENT
+Provider: Self Recorded 
+Value: 21421.0
+Date: December 12th 2024, 4:48:59 pm
+
+PRESCRIPTION
+Provider: Family Doctor
+Description: dfdfsdfias - 21312
+Date: December 12th 2024, 4:49:10 pm
+```
+
+The diary helps maintain a comprehensive record of your health information in one organized location.
+
 ### Creating Records
 ```python
 # Lab Result
@@ -250,7 +292,7 @@ measurement = SelfMeasurement(
 - **Timeline-First Approach**: Prioritized chronological view as well as the data filtering as the main interface based on user needs
 
 ## Future Improvements
-- User session and authentication. Right now all users share the same token, this should be improved and the user should only be able to edit and see their own records. In the document it says to exclude security, so this feature was not prioritzed
+- User session and authentication. Right now the token is based on a UUID per browser i nlocal storage. This should be improved and the user should only be able to edit and see their own records. In the document it says to exclude security, so this feature was not prioritzed
 - File upload capability for actual medical documents (PDFs, images)
 - Integration with healthcare providers' systems
 - Enhanced security features for HIPAA compliance
