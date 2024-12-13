@@ -269,6 +269,23 @@
             dynamicFields.innerHTML = fields;
         }
 
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0,
+                    v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function getOrCreatePatientId() {
+            let patientId = localStorage.getItem('patientId');
+            if (!patientId) {
+                patientId = generateUUID();
+                localStorage.setItem('patientId', patientId);
+            }
+            return patientId;
+        }
+
         function submitRecord(event) {
             event.preventDefault();
             
@@ -276,7 +293,7 @@
             let data = {
                 type: type,
                 provider: document.getElementById('provider').value,
-                patient_id: "123"
+                patient_id: getOrCreatePatientId()
             };
             
             if (type === 'lab_result' || type === 'self_measurement') {
@@ -340,7 +357,7 @@
             const timeFilter = document.getElementById('timeFilter').value;
             
             let url = '/health-records';
-            url += "?&patient_id=123";
+            url += "?&patient_id=" + getOrCreatePatientId();
 
             fetch(url)
                 .then(response => {
