@@ -30,6 +30,20 @@ python >= 13.0
 
 # Installation Guide
 
+## With Docker Compose
+
+You must have a recent version of docker installed (22+)
+
+use the default config.json values.
+
+Run:
+
+```
+docker compose up
+```
+
+visit http://localhost:5000 in your browser.
+
 ## Required: Redis Setup (Do this first)
 You must set up Redis before deploying the application, regardless of which deployment method you choose.
 
