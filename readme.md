@@ -59,6 +59,18 @@ Download and install from [Redis Windows Downloads](https://github.com/microsoft
 
 ## Application Deployment Options
 
+## Configuration
+Make sure to update config.json with your Redis connection details:
+```json
+{
+  "redis": {
+    "host": "localhost",
+    "port": 6379,
+    "db": 0
+  }
+}
+```
+
 ### Option 1: Using Docker
 ```bash
 # Clone the repository
@@ -76,7 +88,7 @@ docker run -d --name flask-server -p 5000:5000 flask-server
 # Don't forget to update config.json with your Redis connection details!
 ```
 
-### Option 2: Manual Installation
+### Option 2: Manual Debug Server Installation
 ```bash
 # Clone the repository
 git clone https://github.com/silicon-sage/AlexPythonServer
@@ -89,18 +101,6 @@ pip install -r requirements.txt
 
 # Start the development server
 py run.py
-```
-
-## Configuration
-Make sure to update config.json with your Redis connection details:
-```json
-{
-  "redis": {
-    "host": "localhost",
-    "port": 6379,
-    "db": 0
-  }
-}
 ```
 
 ## Verification
