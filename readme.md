@@ -99,6 +99,10 @@ cd AlexPythonServer
 # Install dependencies
 pip install -r requirements.txt
 
+# Reinstall redis package
+pip uninstall redis
+pip install redis
+
 # Start the development server
 py run.py
 ```
